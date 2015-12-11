@@ -33,6 +33,7 @@ setTHERMLimit KEYWORD2
 getFanConfig KEYWORD2
 setFanConfig KEYWORD2
 getFanTachCount KEYWORD2
+setFanTachCount KEYWORD2
 getFanTargetTach KEYWORD2
 setFanTargetTach KEYWORD2
 getFanPPR KEYWORD2
@@ -57,6 +58,7 @@ setChan2Source KEYWORD2
 setPWMPolarity KEYWORD2
 setPWMMode KEYWORD2
 setFanControl KEYWORD2
+maxRegDump KEYWORD2
 
 #######################################
 # Constants (LITERAL1)

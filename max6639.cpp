@@ -212,6 +212,12 @@ uint8_t MAX6639::getFanTachCount(uint8_t ch) {
   return(Count);
 }
 
+void MAX6639::setFanTachCount(uint8_t ch, uint8_t Count) {
+  
+  writeByte(Count, MAX6639_REG_FAN_CNT(ch));
+  return;
+}
+
 uint8_t MAX6639::getFanTargetTach(uint8_t ch) {
   uint8_t Count;
   
@@ -303,7 +309,7 @@ uint8_t MAX6639::getDevRev(void) {
   return(rev);
 }
 
-void MAX6639::setFanSpinup(bool state, uint8_t ch) {
+void MAX6639::setFanSpinup(uint8_t ch, bool state) {
   uint8_t curr_config;
   
   curr_config = getFanConfig(MAX6639_REG_FAN_CONFIG3(ch));
@@ -315,7 +321,7 @@ void MAX6639::setFanSpinup(bool state, uint8_t ch) {
   setFanConfig(MAX6639_REG_FAN_CONFIG3(ch), curr_config);
 }
 
-void MAX6639::setFanTherm(bool state, uint8_t ch) {
+void MAX6639::setFanTherm(uint8_t ch, bool state) {
   uint8_t curr_config;
   
   curr_config = getFanConfig(MAX6639_REG_FAN_CONFIG3(ch));
@@ -327,7 +333,7 @@ void MAX6639::setFanTherm(bool state, uint8_t ch) {
   setFanConfig(MAX6639_REG_FAN_CONFIG3(ch), curr_config);
 }
 
-void MAX6639::setFanPulseStretch(bool state, uint8_t ch) {
+void MAX6639::setFanPulseStretch(uint8_t ch, bool state) {
   uint8_t curr_config;
   
   curr_config = getFanConfig(MAX6639_REG_FAN_CONFIG3(ch));
@@ -339,7 +345,7 @@ void MAX6639::setFanPulseStretch(bool state, uint8_t ch) {
   setFanConfig(MAX6639_REG_FAN_CONFIG3(ch), curr_config);
 }
 
-void MAX6639::setFanPWMFreq(uint8_t freq, uint8_t ch) {
+void MAX6639::setFanPWMFreq(uint8_t ch, uint8_t freq) {
   uint8_t curr_config;
   
   curr_config = getConfig();
@@ -401,7 +407,7 @@ void MAX6639::setChan2Source(uint8_t source) {
   setConfig(curr_config);
 }
 
-void MAX6639::setPWMPolarity(bool state, uint8_t ch) {
+void MAX6639::setPWMPolarity(uint8_t ch, bool state) {
   uint8_t curr_config;
   
   curr_config = getFanConfig(MAX6639_REG_FAN_CONFIG2a(ch));
@@ -413,7 +419,7 @@ void MAX6639::setPWMPolarity(bool state, uint8_t ch) {
   setFanConfig(MAX6639_REG_FAN_CONFIG2a(ch), curr_config);
 }
 
-void MAX6639::setPWMMode(bool state, uint8_t ch) {
+void MAX6639::setPWMMode(uint8_t ch, bool state) {
   uint8_t curr_config;
   
   curr_config = getFanConfig(MAX6639_REG_FAN_CONFIG1(ch));
@@ -425,11 +431,35 @@ void MAX6639::setPWMMode(bool state, uint8_t ch) {
   setFanConfig(MAX6639_REG_FAN_CONFIG1(ch), curr_config);
 }
 
-void MAX6639::setFanControl(uint8_t TChan, uint8_t ch) {
+void MAX6639::setFanControl(uint8_t ch, uint8_t TChan) {
   uint8_t curr_config;
   
   curr_config = getFanConfig(MAX6639_REG_FAN_CONFIG1(ch));
   curr_config &= 0xF3;
   curr_config |= TChan;
   setFanConfig(MAX6639_REG_FAN_CONFIG1(ch), curr_config);
+}
+
+void MAX6639::maxRegDump(uint8_t start, uint8_t end) {
+  uint8_t val;
+  
+  Serial.print("MAX6639 Register Dump 0x");
+  Serial.println(_address, HEX);
+  Serial.println("--- BEGIN DUMP ---");
+  for(uint8_t n=start;n <= end;n++) {
+    readByte(&val, n);
+	if(!(n%8)) {
+      Serial.print("\n");
+    }
+	if(n<16)
+	  Serial.print("0");
+    Serial.print(n, HEX);
+    Serial.print(":");
+	if(val < 0x10)
+	  Serial.print("0");
+    Serial.print(val, HEX);
+    Serial.print(" ");
+  }
+  Serial.print("\n");
+  Serial.println("--- END DUMP ---");  
 }

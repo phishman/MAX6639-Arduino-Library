@@ -58,6 +58,16 @@
  #define MAX6639_FAN_CONFIG3_THERM_FULL_SPEED    0x40
  
  static const int rpm_ranges[] = { 2000, 4000, 8000, 16000 };
+ #define RPM_2K		0x00
+ #define RPM_4K		0x01
+ #define RPM_8K		0x02
+ #define RPM_16K	0x03
+ 
+ #define TEMPSTEP_1	0x00
+ #define TEMPSTEP_2	0x01
+ #define TEMPSTEP_4	0x02
+ #define TEMPSTEP_8	0x03
+ 
  #define PWM5HZ		4
  #define PWM8_33HZ	5
  #define PWM12_5HZ	6
@@ -67,14 +77,23 @@
  #define PWM50HZ	2
  #define PWM100HZ	3
  
+ #define PWM_MODE_MANUAL 	1
+ #define PWM_MODE_RPM		0
+ 
  #define LOCAL 1
  #define REMOTE 0
  
  #define ACTIVE_LOW		0
  #define ACTIVE_HIGH	1
  
- #define TCHAN1	0x08
- #define TCHAN2 0x04
+ #define TCHAN_OFF	0x00
+ #define TCHAN_1	0x08
+ #define TCHAN_2 	0x04
+ 
+ #define TACHPPR_1	0x00
+ #define TACHPPR_2	0x01
+ #define TACHPPR_3	0x02
+ #define TACHPPR_4	0x03
  
  #define FAN_FROM_REG(val, rpm_range)    ((val) == 0 || (val) == 255 ? \
                                  0 : (rpm_ranges[rpm_range] * 30) / (val))
@@ -108,6 +127,7 @@ public:
   uint8_t getFanConfig(uint8_t reg);
   void setFanConfig(uint8_t reg, uint8_t Config);
   uint8_t getFanTachCount(uint8_t ch);
+  void setFanTachCount(uint8_t ch, uint8_t Count);
   uint8_t getFanTargetTach(uint8_t ch);
   void setFanTargetTach(uint8_t ch, uint8_t Count);
   uint8_t getFanPPR(uint8_t ch);
@@ -121,17 +141,18 @@ public:
   uint8_t getDevID(void);
   uint8_t getManuID(void);
   uint8_t getDevRev(void);
-  void setFanSpinup(bool state, uint8_t ch);
-  void setFanTherm(bool state, uint8_t ch);
-  void setFanPulseStretch(bool state, uint8_t ch);
-  void setFanPWMFreq(uint8_t freq, uint8_t ch);
+  void setFanSpinup(uint8_t ch, bool state);
+  void setFanTherm(uint8_t ch, bool state);
+  void setFanPulseStretch(uint8_t ch, bool state);
+  void setFanPWMFreq(uint8_t ch, uint8_t freq);
   void setRun(bool state);
   bool isRunning(void);
   void setPOR(bool state);
   void setChan2Source(uint8_t source);
-  void setPWMPolarity(bool state, uint8_t ch);
-  void setPWMMode(bool state, uint8_t ch);
-  void setFanControl(uint8_t TChan, uint8_t ch);
+  void setPWMPolarity(uint8_t ch, bool state);
+  void setPWMMode(uint8_t ch, bool state);
+  void setFanControl(uint8_t ch, uint8_t TChan);
+  void maxRegDump(uint8_t start, uint8_t end);
   
 protected: 
 
