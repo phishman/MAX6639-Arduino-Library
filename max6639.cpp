@@ -140,6 +140,7 @@ double MAX6639::getExtTemp(uint8_t ch) {
   uint8_t Temp;
   double extTemp = 0.00;
   
+  extTemp = readTempC(ch);
   readByte(&Temp, MAX6639_REG_TEMP_EXT(ch));
   if(Temp & 0x80)
     extTemp += 0.50;
