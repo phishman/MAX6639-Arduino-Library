@@ -87,8 +87,8 @@
  #define ACTIVE_HIGH	1
  
  #define TCHAN_OFF	0x00
- #define TCHAN_1	0x08
- #define TCHAN_2 	0x04
+ #define TCHAN_0	0x08
+ #define TCHAN_1 	0x04
  
  #define TACHPPR_1	0x00
  #define TACHPPR_2	0x01
