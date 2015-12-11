@@ -424,3 +424,12 @@ void MAX6639::setPWMMode(bool state, uint8_t ch) {
   }
   setFanConfig(MAX6639_REG_FAN_CONFIG1(ch), curr_config);
 }
+
+void MAX6639::setFanControl(uint8_t TChan, uint8_t ch) {
+  uint8_t curr_config;
+  
+  curr_config = getFanConfig(MAX6639_REG_FAN_CONFIG1(ch));
+  curr_config &= 0xF3;
+  curr_config |= TChan;
+  setFanConfig(MAX6639_REG_FAN_CONFIG1(ch), curr_config);
+}

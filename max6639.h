@@ -73,6 +73,9 @@
  #define ACTIVE_LOW		0
  #define ACTIVE_HIGH	1
  
+ #define TCHAN1	0x08
+ #define TCHAN2 0x04
+ 
  #define FAN_FROM_REG(val, rpm_range)    ((val) == 0 || (val) == 255 ? \
                                  0 : (rpm_ranges[rpm_range] * 30) / (val))
  #define TEMP_LIMIT_TO_REG(val)  clamp_val((val) / 1000, 0, 255)
@@ -128,6 +131,7 @@ public:
   void setChan2Source(uint8_t source);
   void setPWMPolarity(bool state, uint8_t ch);
   void setPWMMode(bool state, uint8_t ch);
+  void setFanControl(uint8_t TChan, uint8_t ch);
   
 protected: 
 
