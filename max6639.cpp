@@ -244,7 +244,25 @@ uint8_t MAX6639::getFanDuty(uint8_t ch) {
   return(duty);
 }
 
+uint8_t MAX6639::getFanDutyPercent(uint8_t ch) {
+  uint8_t duty;
+  
+  readByte(&duty, MAX6639_REG_TARGTDUTY(ch));
+  duty = (uint8_t) ((((double) duty) / 120.00) * 100.00);
+  return(duty);
+}
+
 void MAX6639::setFanDuty(uint8_t ch, uint8_t duty) {
+  
+  writeByte(duty, MAX6639_REG_TARGTDUTY(ch));
+  return;
+}
+
+void MAX6639::setFanDutyPercent(uint8_t ch, uint8_t duty) {
+  if(duty > 100)
+    duty = 100;
+	
+  duty *= 1.20;
   
   writeByte(duty, MAX6639_REG_TARGTDUTY(ch));
   return;
@@ -282,4 +300,126 @@ uint8_t MAX6639::getDevRev(void) {
   
   readByte(&rev, MAX6639_REG_DEVREV);
   return(rev);
+}
+
+void MAX6639::setFanSpinup(bool state, uint8_t ch) {
+  uint8_t curr_config;
+  
+  curr_config = getFanConfig(MAX6639_REG_FAN_CONFIG3(ch));
+  if(state) {
+    curr_config &= 0x7F;
+  } else {
+    curr_config |= 0x80;
+  }
+  setFanConfig(MAX6639_REG_FAN_CONFIG3(ch), curr_config);
+}
+
+void MAX6639::setFanTherm(bool state, uint8_t ch) {
+  uint8_t curr_config;
+  
+  curr_config = getFanConfig(MAX6639_REG_FAN_CONFIG3(ch));
+  if(state) {
+    curr_config |= 0x40;
+  } else {
+    curr_config &= 0xBF;
+  }
+  setFanConfig(MAX6639_REG_FAN_CONFIG3(ch), curr_config);
+}
+
+void MAX6639::setFanPulseStretch(bool state, uint8_t ch) {
+  uint8_t curr_config;
+  
+  curr_config = getFanConfig(MAX6639_REG_FAN_CONFIG3(ch));
+  if(state) {
+    curr_config &= 0xDF;
+  } else {
+    curr_config |= 0x20;
+  }
+  setFanConfig(MAX6639_REG_FAN_CONFIG3(ch), curr_config);
+}
+
+void MAX6639::setFanPWMFreq(uint8_t freq, uint8_t ch) {
+  uint8_t curr_config;
+  
+  curr_config = getConfig();
+  curr_config &= 0xF7;
+  curr_config |= (freq & 0x04);
+  setConfig(curr_config);
+  
+  curr_config = getFanConfig(MAX6639_REG_FAN_CONFIG3(ch));
+  curr_config &= 0xFC;
+  freq &= 0x03;
+  curr_config |= freq;
+  setFanConfig(MAX6639_REG_FAN_CONFIG3(ch), curr_config);
+}
+
+void MAX6639::setRun(bool state) {
+  uint8_t curr_config;
+  
+  curr_config = getConfig();
+  if(state) {
+    curr_config &= 0x7F;
+  } else {
+    curr_config |= 0x80;
+  }
+  setConfig(curr_config);
+}
+
+bool MAX6639::isRunning(void) {
+  uint8_t curr_config;
+  
+  curr_config = getConfig();
+  if(curr_config & 0x80) {
+    return(false);
+  } else {
+    return(true);
+  }
+}
+
+void MAX6639::setPOR(bool state) {
+  uint8_t curr_config;
+  
+  curr_config = getConfig();
+  if(state) {
+    curr_config |= 0x80;
+  } else {
+    curr_config &= 0xBF;
+  }
+  setConfig(curr_config);
+}
+
+void MAX6639::setChan2Source(uint8_t source) {
+  uint8_t curr_config;
+  
+  curr_config = getConfig();
+  if(source == 1) {
+    curr_config |= 0x10;
+  } else {
+    curr_config &= 0xEF;
+  }
+  setConfig(curr_config);
+}
+
+void MAX6639::setPWMPolarity(bool state, uint8_t ch) {
+  uint8_t curr_config;
+  
+  curr_config = getFanConfig(MAX6639_REG_FAN_CONFIG2a(ch));
+  if(state) {
+    curr_config |= 0x02;
+  } else {
+    curr_config &= 0xFD;
+  }
+  setFanConfig(MAX6639_REG_FAN_CONFIG2a(ch), curr_config);
+}
+
+void MAX6639::setPWMMode(bool state, uint8_t ch) {
+  uint8_t curr_config;
+  
+  curr_config = getFanConfig(MAX6639_REG_FAN_CONFIG1(ch));
+  if(state) {
+    curr_config |= 0x80;
+  } else {
+    curr_config &= 0x7F;
+  }
+  setFanConfig(MAX6639_REG_FAN_CONFIG1(ch), curr_config);
 }

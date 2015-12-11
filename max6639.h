@@ -58,6 +58,20 @@
  #define MAX6639_FAN_CONFIG3_THERM_FULL_SPEED    0x40
  
  static const int rpm_ranges[] = { 2000, 4000, 8000, 16000 };
+ #define PWM5HZ		4
+ #define PWM8_33HZ	5
+ #define PWM12_5HZ	6
+ #define PWM20HZ	0
+ #define PWM25HZ	7
+ #define PWM33_33HZ	1	
+ #define PWM50HZ	2
+ #define PWM100HZ	3
+ 
+ #define LOCAL 1
+ #define REMOTE 0
+ 
+ #define ACTIVE_LOW		0
+ #define ACTIVE_HIGH	1
  
  #define FAN_FROM_REG(val, rpm_range)    ((val) == 0 || (val) == 255 ? \
                                  0 : (rpm_ranges[rpm_range] * 30) / (val))
@@ -96,12 +110,24 @@ public:
   uint8_t getFanPPR(uint8_t ch);
   void setFanPPR(uint8_t ch, uint8_t ppr);
   uint8_t getFanDuty(uint8_t ch);
+  uint8_t getFanDutyPercent(uint8_t ch);
   void setFanDuty(uint8_t ch, uint8_t duty);
+  void setFanDutyPercent(uint8_t ch, uint8_t duty);
   uint8_t getFanStartTempC(uint8_t ch);
   void setFanStartTempC(uint8_t ch, uint8_t Temperature);
   uint8_t getDevID(void);
   uint8_t getManuID(void);
   uint8_t getDevRev(void);
+  void setFanSpinup(bool state, uint8_t ch);
+  void setFanTherm(bool state, uint8_t ch);
+  void setFanPulseStretch(bool state, uint8_t ch);
+  void setFanPWMFreq(uint8_t freq, uint8_t ch);
+  void setRun(bool state);
+  bool isRunning(void);
+  void setPOR(bool state);
+  void setChan2Source(uint8_t source);
+  void setPWMPolarity(bool state, uint8_t ch);
+  void setPWMMode(bool state, uint8_t ch);
   
 protected: 
 
