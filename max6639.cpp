@@ -235,12 +235,39 @@ uint8_t MAX6639::getFanPPR(uint8_t ch) {
   uint8_t ppr;
   
   readByte(&ppr, MAX6639_REG_FAN_PPR(ch));
-  return(ppr);
+  return(ppr & 0xC0);
+}
+
+uint8_t MAX6639::getFanPPRval(uint8_t ch) {
+  uint8_t ppr;
+  
+  readByte(&ppr, MAX6639_REG_FAN_PPR(ch));
+  ppr &= 0xC0;
+  return(ppr >> 6);
 }
 
 void MAX6639::setFanPPR(uint8_t ch, uint8_t ppr) {
   
+  readByte(&ppr, MAX6639_REG_FAN_PPR(ch));
+  ppr &= 0x3F;
+  ppr |= (ppr & 0xC0);
   writeByte(ppr, MAX6639_REG_FAN_PPR(ch));
+  return;
+}
+
+uint8_t MAX6639::getFanMinTachCount(uint8_t ch) {
+  uint8_t mintach;
+  
+  readByte(&mintach, MAX6639_REG_FAN_MINTACH(ch));
+  return(mintach & 0x3F);
+}
+
+void MAX6639::setFanMinTachCount(uint8_t ch, uint8_t mintach) {
+  uint8_t ppr;
+  
+  ppr = getFanPPR(ch);
+  ppr |= mintach;
+  writeByte(ppr, MAX6639_REG_FAN_MINTACH(ch));
   return;
 }
 
@@ -255,7 +282,7 @@ uint8_t MAX6639::getFanDutyPercent(uint8_t ch) {
   uint8_t duty;
   
   readByte(&duty, MAX6639_REG_TARGTDUTY(ch));
-  duty = (uint8_t) ((((double) duty) / 120.00) * 100.00);
+  duty = (uint8_t) (duty * 255 / 120) ;
   return(duty);
 }
 
@@ -266,12 +293,13 @@ void MAX6639::setFanDuty(uint8_t ch, uint8_t duty) {
 }
 
 void MAX6639::setFanDutyPercent(uint8_t ch, uint8_t duty) {
+  uint8_t val;
   if(duty > 100)
     duty = 100;
 	
-  duty *= 1.20;
+  val = (uint8_t) duty * 120 / 255;
   
-  writeByte(duty, MAX6639_REG_TARGTDUTY(ch));
+  writeByte(val, MAX6639_REG_TARGTDUTY(ch));
   return;
 }
 
@@ -439,6 +467,25 @@ void MAX6639::setFanControl(uint8_t ch, uint8_t TChan) {
   curr_config |= TChan;
   setFanConfig(MAX6639_REG_FAN_CONFIG1(ch), curr_config);
 }
+
+uint8_t MAX6639::getFanRPMRange(uint8_t ch) {
+  uint8_t curr_config;
+  
+  curr_config = getFanConfig(MAX6639_REG_FAN_CONFIG1(ch));
+  curr_config &= 0x03;
+  return(curr_config);
+}
+
+void MAX6639::setFanRPMRange(uint8_t ch, uint8_t range) {
+  uint8_t curr_config;
+  
+  curr_config = getFanConfig(MAX6639_REG_FAN_CONFIG1(ch));
+  curr_config &= 0xFC;
+  curr_config |= range;
+
+  setFanConfig(MAX6639_REG_FAN_CONFIG1(ch), curr_config);
+}
+
 
 void MAX6639::maxRegDump(uint8_t start, uint8_t end) {
   uint8_t val;

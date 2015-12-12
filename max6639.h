@@ -40,6 +40,7 @@
  #define MAX6639_REG_FAN_CNT(ch)                 (0x20 + (ch))
  #define MAX6639_REG_TARGET_CNT(ch)              (0x22 + (ch))
  #define MAX6639_REG_FAN_PPR(ch)                 (0x24 + (ch))
+ #define MAX6639_REG_FAN_MINTACH(ch)             (0x24 + (ch))
  #define MAX6639_REG_TARGTDUTY(ch)               (0x26 + (ch))
  #define MAX6639_REG_FAN_START_TEMP(ch)          (0x28 + (ch))
  #define MAX6639_REG_DEVID                       0x3D
@@ -91,9 +92,9 @@
  #define TCHAN_1 	0x04
  
  #define TACHPPR_1	0x00
- #define TACHPPR_2	0x01
- #define TACHPPR_3	0x02
- #define TACHPPR_4	0x03
+ #define TACHPPR_2	0x40
+ #define TACHPPR_3	0x80
+ #define TACHPPR_4	0xC0
  
  #define FAN_FROM_REG(val, rpm_range)    ((val) == 0 || (val) == 255 ? \
                                  0 : (rpm_ranges[rpm_range] * 30) / (val))
@@ -131,7 +132,10 @@ public:
   uint8_t getFanTargetTach(uint8_t ch);
   void setFanTargetTach(uint8_t ch, uint8_t Count);
   uint8_t getFanPPR(uint8_t ch);
+  uint8_t getFanPPRval(uint8_t ch);
   void setFanPPR(uint8_t ch, uint8_t ppr);
+  uint8_t getFanMinTachCount(uint8_t ch);
+  void setFanMinTachCount(uint8_t ch, uint8_t mintach);
   uint8_t getFanDuty(uint8_t ch);
   uint8_t getFanDutyPercent(uint8_t ch);
   void setFanDuty(uint8_t ch, uint8_t duty);
@@ -152,6 +156,8 @@ public:
   void setPWMPolarity(uint8_t ch, bool state);
   void setPWMMode(uint8_t ch, bool state);
   void setFanControl(uint8_t ch, uint8_t TChan);
+  uint8_t getFanRPMRange(uint8_t ch);
+  void setFanRPMRange(uint8_t ch, uint8_t range);
   void maxRegDump(uint8_t start, uint8_t end);
   
 protected: 
