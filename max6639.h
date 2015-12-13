@@ -22,7 +22,7 @@
 
 
 /* Addresses to scan */
- static const unsigned short normal_i2c[] = { 0x2c, 0x2e, 0x2f };
+ static const unsigned short normal_i2c[] = { 0x2C, 0x2E, 0x2F };
  
  /* The MAX6639 registers, valid channel numbers: 0, 1 */
  #define MAX6639_REG_TEMP(ch)                    (0x00 + (ch))
@@ -96,11 +96,18 @@
  #define TACHPPR_3	0x80
  #define TACHPPR_4	0xC0
  
- #define FAN_FROM_REG(val, rpm_range)    ((val) == 0 || (val) == 255 ? \
-                                 0 : (rpm_ranges[rpm_range] * 30) / (val))
- #define TEMP_LIMIT_TO_REG(val)  clamp_val((val) / 1000, 0, 255)
+ // Default Settings
  
-
+ #define DEFAULT_RPM_RANGE		RPM_4K
+ #define DEFAULT_PWM_POLARITY	ACTIVE_LOW
+ #define DEFAULT_FAN_PPR		TACHPPR_2
+ #define DEFAULT_PWM_FREQ		PWM25HZ
+ #define DEFAULT_LIMIT_THERM	40
+ #define DEFAULT_LIMIT_ALERT	70
+ #define DEFAULT_LIMIT_OVERTEMP	80
+ #define DEFAULT_BUS_TIMEOUT	MAX6639_GCONFIG_DISABLE_TIMEOUT
+ #define DEFAULT_CH2_SOURCE		MAX6639_GCONFIG_CH2_LOCAL
+ #define DEFAULT_FAN_TARGET_DUTY	120
 
 
 class MAX6639 {
@@ -119,12 +126,12 @@ public:
   void setConfig(uint8_t Config);
   bool getDiodeFault(uint8_t ch);
   double getExtTemp(uint8_t ch);
-  uint8_t getAlertLimit(uint8_t ch);
-  void setAlertLimit(uint8_t Limit, uint8_t ch);
+  uint8_t getALERTLimit(uint8_t ch);
+  void setALERTLimit(uint8_t ch, uint8_t Limit);
   uint8_t getOTLimit(uint8_t ch);
-  void setOTLimit(uint8_t Limit, uint8_t ch);
+  void setOTLimit(uint8_t ch, uint8_t Limit);
   uint8_t getTHERMLimit(uint8_t ch);
-  void setTHERMLimit(uint8_t Limit, uint8_t ch);
+  void setTHERMLimit(uint8_t ch, uint8_t Limit);
   uint8_t getFanConfig(uint8_t reg);
   void setFanConfig(uint8_t reg, uint8_t Config);
   uint8_t getFanTachCount(uint8_t ch);
@@ -159,6 +166,7 @@ public:
   uint8_t getFanRPMRange(uint8_t ch);
   void setFanRPMRange(uint8_t ch, uint8_t range);
   void maxRegDump(uint8_t start, uint8_t end);
+  void initDefaults(void);
   
 protected: 
 

@@ -153,14 +153,14 @@ double MAX6639::getExtTemp(uint8_t ch) {
 }
 
 
-uint8_t MAX6639::getAlertLimit(uint8_t ch) {
+uint8_t MAX6639::getALERTLimit(uint8_t ch) {
   uint8_t Limit;
   
   readByte(&Limit, MAX6639_REG_ALERT_LIMIT(ch));
   return(Limit);
 }
 
-void MAX6639::setAlertLimit(uint8_t Limit, uint8_t ch) {
+void MAX6639::setALERTLimit(uint8_t ch, uint8_t Limit) {
 
   writeByte(Limit, MAX6639_REG_ALERT_LIMIT(ch));
   return;
@@ -173,7 +173,7 @@ uint8_t MAX6639::getOTLimit(uint8_t ch) {
   return(Limit);
 }
 
-void MAX6639::setOTLimit(uint8_t Limit, uint8_t ch) {
+void MAX6639::setOTLimit(uint8_t ch, uint8_t Limit) {
 
   writeByte(Limit, MAX6639_REG_OT_LIMIT(ch));
   return;
@@ -186,7 +186,7 @@ uint8_t MAX6639::getTHERMLimit(uint8_t ch) {
   return(Limit);
 }
 
-void MAX6639::setTHERMLimit(uint8_t Limit, uint8_t ch) {
+void MAX6639::setTHERMLimit(uint8_t ch, uint8_t Limit) {
 
   writeByte(Limit, MAX6639_REG_THERM_LIMIT(ch));
   return;
@@ -282,7 +282,7 @@ uint8_t MAX6639::getFanDutyPercent(uint8_t ch) {
   uint8_t duty;
   
   readByte(&duty, MAX6639_REG_TARGTDUTY(ch));
-  duty = (uint8_t) (duty * 255 / 120) ;
+  duty = (uint8_t) (duty * 100 / 120) ;
   return(duty);
 }
 
@@ -297,7 +297,7 @@ void MAX6639::setFanDutyPercent(uint8_t ch, uint8_t duty) {
   if(duty > 100)
     duty = 100;
 	
-  val = (uint8_t) duty * 120 / 255;
+  val = (uint8_t) duty * 120 / 100;
   
   writeByte(val, MAX6639_REG_TARGTDUTY(ch));
   return;
@@ -378,7 +378,7 @@ void MAX6639::setFanPWMFreq(uint8_t ch, uint8_t freq) {
   
   curr_config = getConfig();
   curr_config &= 0xF7;
-  curr_config |= (freq & 0x04);
+  curr_config |= ((freq & 0x04)<<1);
   setConfig(curr_config);
   
   curr_config = getFanConfig(MAX6639_REG_FAN_CONFIG3(ch));
@@ -509,4 +509,27 @@ void MAX6639::maxRegDump(uint8_t start, uint8_t end) {
   }
   Serial.print("\n");
   Serial.println("--- END DUMP ---");  
+}
+
+
+void MAX6639::initDefaults(void) {
+  setPOR(true);
+  delay(100);
+  setFanPPR(0, DEFAULT_FAN_PPR);
+  setFanPPR(1, DEFAULT_FAN_PPR);
+  setFanConfig(MAX6639_REG_FAN_CONFIG1(0), MAX6639_FAN_CONFIG1_PWM|DEFAULT_RPM_RANGE);
+  setFanConfig(MAX6639_REG_FAN_CONFIG1(1), MAX6639_FAN_CONFIG1_PWM|DEFAULT_RPM_RANGE);
+  setPWMPolarity(0, DEFAULT_PWM_POLARITY);
+  setPWMPolarity(1, DEFAULT_PWM_POLARITY);
+  setFanConfig(MAX6639_REG_FAN_CONFIG3(0), MAX6639_FAN_CONFIG3_THERM_FULL_SPEED|(DEFAULT_PWM_FREQ&0x03));
+  setFanConfig(MAX6639_REG_FAN_CONFIG3(1), MAX6639_FAN_CONFIG3_THERM_FULL_SPEED|(DEFAULT_PWM_FREQ&0x03));
+  setTHERMLimit(0, DEFAULT_LIMIT_THERM);
+  setTHERMLimit(1, DEFAULT_LIMIT_THERM);
+  setALERTLimit(0, DEFAULT_LIMIT_ALERT);
+  setALERTLimit(1, DEFAULT_LIMIT_ALERT);
+  setOTLimit(0, DEFAULT_LIMIT_OVERTEMP);
+  setOTLimit(1, DEFAULT_LIMIT_OVERTEMP);
+  setFanDuty(0, DEFAULT_FAN_TARGET_DUTY);
+  setFanDuty(1, DEFAULT_FAN_TARGET_DUTY);  
+  setConfig(DEFAULT_BUS_TIMEOUT|DEFAULT_CH2_SOURCE|((DEFAULT_PWM_FREQ & 0x04)<<1));
 }
