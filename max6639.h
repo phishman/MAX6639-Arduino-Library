@@ -69,14 +69,14 @@
  #define TEMPSTEP_4	0x02
  #define TEMPSTEP_8	0x03
  
- #define PWM5HZ		4
- #define PWM8_33HZ	5
- #define PWM12_5HZ	6
- #define PWM20HZ	0
- #define PWM25HZ	7
- #define PWM33_33HZ	1	
- #define PWM50HZ	2
- #define PWM100HZ	3
+ #define PWM5KHZ		4	// High Frequency Range
+ #define PWM8_33KHZ		5
+ #define PWM12_5KHZ		6
+ #define PWM25KHZ		7
+ #define PWM20HZ		0	// Low Frequency Range
+ #define PWM33_33HZ		1	
+ #define PWM50HZ		2
+ #define PWM100HZ		3
  
  #define PWM_MODE_MANUAL 	1
  #define PWM_MODE_RPM		0
@@ -101,13 +101,16 @@
  #define DEFAULT_RPM_RANGE		RPM_4K
  #define DEFAULT_PWM_POLARITY	ACTIVE_HIGH
  #define DEFAULT_FAN_PPR		TACHPPR_2
- #define DEFAULT_PWM_FREQ		PWM25HZ
- #define DEFAULT_LIMIT_THERM	25
- #define DEFAULT_LIMIT_ALERT	30
- #define DEFAULT_LIMIT_OVERTEMP	40
+ #define DEFAULT_PWM_FREQ		PWM20HZ
+ #define DEFAULT_LIMIT_THERM	40
+ #define DEFAULT_LIMIT_ALERT	50
+ #define DEFAULT_LIMIT_OVERTEMP	60
  #define DEFAULT_BUS_TIMEOUT	MAX6639_GCONFIG_DISABLE_TIMEOUT
  #define DEFAULT_CH2_SOURCE		MAX6639_GCONFIG_CH2_LOCAL
  #define DEFAULT_FAN_TARGET_DUTY	120
+ #define DEFAULT_FAN_ROC		0x70		//default rate of change
+ #define DEFAULT_MIN_TACH		0x05
+ #define DEFAULT_MIN_TACH_ENABLE	1
 
 
 class MAX6639 {
@@ -167,6 +170,17 @@ public:
   void setFanRPMRange(uint8_t ch, uint8_t range);
   void maxRegDump(uint8_t start, uint8_t end);
   void initDefaults(void);
+  void setFanMinimumSpeed(uint8_t ch, bool state, uint8_t count);
+  void setFanRateOfChange(uint8_t ch, uint8_t val);
+  uint8_t getFanRateOfChange(uint8_t ch);
+  void setFanRPMStepA(uint8_t ch, uint8_t val);
+  uint8_t getFanRPMStepA(uint8_t ch);
+  void setFanTempStepA(uint8_t ch, uint8_t val);
+  uint8_t getFanTempStepA(uint8_t ch);
+  void setFanRPMStepB(uint8_t ch, uint8_t val);
+  uint8_t getFanRPMStepB(uint8_t ch);
+  void setFanStartStep(uint8_t ch, uint8_t val);
+  uint8_t getFanStartStep(uint8_t ch);
   
 protected: 
 

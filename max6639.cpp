@@ -265,6 +265,7 @@ uint8_t MAX6639::getFanMinTachCount(uint8_t ch) {
 void MAX6639::setFanMinTachCount(uint8_t ch, uint8_t mintach) {
   uint8_t ppr;
   
+  mintach &= 0x3F;
   ppr = getFanPPR(ch);
   ppr |= mintach;
   writeByte(ppr, MAX6639_REG_FAN_MINTACH(ch));
@@ -514,11 +515,11 @@ void MAX6639::maxRegDump(uint8_t start, uint8_t end) {
 
 void MAX6639::initDefaults(void) {
   setPOR(true);
-  delay(100);
+  delay(1000);
   setFanPPR(0, DEFAULT_FAN_PPR);
   setFanPPR(1, DEFAULT_FAN_PPR);
-  setFanConfig(MAX6639_REG_FAN_CONFIG1(0), MAX6639_FAN_CONFIG1_PWM|DEFAULT_RPM_RANGE);
-  setFanConfig(MAX6639_REG_FAN_CONFIG1(1), MAX6639_FAN_CONFIG1_PWM|DEFAULT_RPM_RANGE);
+  setFanConfig(MAX6639_REG_FAN_CONFIG1(0), MAX6639_FAN_CONFIG1_PWM|DEFAULT_RPM_RANGE|DEFAULT_FAN_ROC);
+  setFanConfig(MAX6639_REG_FAN_CONFIG1(1), MAX6639_FAN_CONFIG1_PWM|DEFAULT_RPM_RANGE|DEFAULT_FAN_ROC);
   setPWMPolarity(0, DEFAULT_PWM_POLARITY);
   setPWMPolarity(1, DEFAULT_PWM_POLARITY);
   setFanConfig(MAX6639_REG_FAN_CONFIG3(0), (DEFAULT_PWM_FREQ&0x03));
@@ -538,4 +539,119 @@ void MAX6639::initDefaults(void) {
   setPWMMode(0, false);
   setPWMMode(1, false);
   setConfig(DEFAULT_BUS_TIMEOUT|DEFAULT_CH2_SOURCE|((DEFAULT_PWM_FREQ & 0x04)<<1));
+  setFanMinimumSpeed(0, DEFAULT_MIN_TACH_ENABLE, DEFAULT_MIN_TACH);
+  setFanMinimumSpeed(1, true, DEFAULT_MIN_TACH);
+}
+
+void MAX6639::setFanMinimumSpeed(uint8_t ch, bool state, uint8_t count) {
+  uint8_t curr_config;
+  
+  curr_config = getFanConfig(MAX6639_REG_FAN_CONFIG2a(ch));
+  if(state) {
+    curr_config |= 0x01;
+  } else {
+    curr_config &= 0xFE;
+  }
+  setFanConfig(MAX6639_REG_FAN_CONFIG2a(ch), curr_config);
+  setFanMinTachCount(ch, count);
+}
+
+void MAX6639::setFanRateOfChange(uint8_t ch, uint8_t val) {
+  uint8_t curr_config;
+  
+  curr_config = getFanConfig(MAX6639_REG_FAN_CONFIG1(ch));
+  curr_config &= 0x8F;
+  val &= 0x07;
+  
+  curr_config |= (val << 4);
+  setFanConfig(MAX6639_REG_FAN_CONFIG1(ch), curr_config);
+}
+
+uint8_t MAX6639::getFanRateOfChange(uint8_t ch) {
+  uint8_t curr_config;
+  
+  curr_config = getFanConfig(MAX6639_REG_FAN_CONFIG1(ch));
+  curr_config &= 0x70;
+  
+  return(curr_config >> 4);
+}
+
+void MAX6639::setFanRPMStepA(uint8_t ch, uint8_t val) {
+  uint8_t curr_config;
+  
+  curr_config = getFanConfig(MAX6639_REG_FAN_CONFIG2a(ch));
+  curr_config &= 0x8F;
+  val &= 0x07;
+  
+  curr_config |= (val << 4);
+  setFanConfig(MAX6639_REG_FAN_CONFIG2a(ch), curr_config);
+}
+
+uint8_t MAX6639::getFanRPMStepA(uint8_t ch) {
+  uint8_t curr_config;
+  
+  curr_config = getFanConfig(MAX6639_REG_FAN_CONFIG2a(ch));
+  curr_config &= 0x70;
+  
+  return(curr_config >> 4);
+}
+  
+void MAX6639::setFanTempStepA(uint8_t ch, uint8_t val) {
+  uint8_t curr_config;
+  
+  curr_config = getFanConfig(MAX6639_REG_FAN_CONFIG2a(ch));
+  curr_config &= 0xF3;
+  val &= 0x03;
+  
+  curr_config |= (val << 2);
+  setFanConfig(MAX6639_REG_FAN_CONFIG2a(ch), curr_config);
+}
+
+uint8_t MAX6639::getFanTempStepA(uint8_t ch) {
+  uint8_t curr_config;
+  
+  curr_config = getFanConfig(MAX6639_REG_FAN_CONFIG2a(ch));
+  curr_config &= 0xF3;
+  
+  return(curr_config >> 2);
+}
+
+void MAX6639::setFanRPMStepB(uint8_t ch, uint8_t val) {
+  uint8_t curr_config;
+  
+  curr_config = getFanConfig(MAX6639_REG_FAN_CONFIG2b(ch));
+  curr_config &= 0x0F;
+  val &= 0x0F;
+  
+  curr_config |= (val << 4);
+  setFanConfig(MAX6639_REG_FAN_CONFIG2b(ch), curr_config);
+}
+
+uint8_t MAX6639::getFanRPMStepB(uint8_t ch) {
+  uint8_t curr_config;
+  
+  curr_config = getFanConfig(MAX6639_REG_FAN_CONFIG2b(ch));
+  curr_config &= 0xF0;
+  
+  return(curr_config >> 4);
+}
+
+void MAX6639::setFanStartStep(uint8_t ch, uint8_t val) {
+  uint8_t curr_config;
+  
+  curr_config = getFanConfig(MAX6639_REG_FAN_CONFIG2b(ch));
+  curr_config &= 0xF0;
+  val &= 0x0F;
+  
+  curr_config |= val;
+  setFanConfig(MAX6639_REG_FAN_CONFIG2b(ch), curr_config);
+}
+
+uint8_t MAX6639::getFanStartStep(uint8_t ch) {
+  uint8_t curr_config;
+  
+  curr_config = getFanConfig(MAX6639_REG_FAN_CONFIG2b(ch));
+  curr_config &= 0x0f;
+  
+  return(curr_config);
 }
