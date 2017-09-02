@@ -64,6 +64,13 @@
  #define RPM_8K		0x02
  #define RPM_16K	0x03
  
+ static const int ppr_values[] = { 1, 2, 3, 4 };
+ 
+ #define FAN_FROM_REG(val, div, rpm_range) ((val) == 0 ? -1 : \
+   (val) == 255 ? 0 : (rpm_ranges[rpm_range] * 30) / ((div + 1) * (val)))
+   
+ #define TEMP_LIMIT_TO_REG(val) SENSORS_LIMIT((val) / 1000, 0, 255)
+ 
  #define TEMPSTEP_1	0x00
  #define TEMPSTEP_2	0x01
  #define TEMPSTEP_4	0x02
@@ -98,23 +105,59 @@
  
  // Default Settings
  
- #define DEFAULT_RPM_RANGE		RPM_4K
+ #define DEFAULT_RPM_RANGE		RPM_2K
  #define DEFAULT_PWM_POLARITY	ACTIVE_HIGH
  #define DEFAULT_FAN_PPR		TACHPPR_2
- #define DEFAULT_PWM_FREQ		PWM20HZ
- #define DEFAULT_LIMIT_THERM	40
- #define DEFAULT_LIMIT_ALERT	50
- #define DEFAULT_LIMIT_OVERTEMP	60
+ #define DEFAULT_PWM_FREQ		PWM50HZ
+ #define DEFAULT_MIN_START_TEMP	35
+ #define DEFAULT_LIMIT_THERM	50
+ #define DEFAULT_LIMIT_ALERT	60
+ #define DEFAULT_LIMIT_OVERTEMP	65
  #define DEFAULT_BUS_TIMEOUT	MAX6639_GCONFIG_DISABLE_TIMEOUT
  #define DEFAULT_CH2_SOURCE		MAX6639_GCONFIG_CH2_LOCAL
  #define DEFAULT_FAN_TARGET_DUTY	120
- #define DEFAULT_FAN_ROC		0x70		//default rate of change
- #define DEFAULT_MIN_TACH		0x05
+ #define DEFAULT_FAN_ROC		0x60		//default rate of change 0x70 - 0x00 (only bits 6-4 used for default value)
+ #define DEFAULT_MIN_TACH		0xF0
  #define DEFAULT_MIN_TACH_ENABLE	1
+ #define DEFAULT_STEP_DELAY		0x01		//AKA Rate of Change (3bits) 0x00 - 0x07
+ #define DEFAULT_TEMP_STEP_SIZE	0x01		//(2bits) 0x00 - 0x03
+ #define DEFAULT_RPM_STEP_A		0x01		//(4bits) 0x00 - 0x0F
+ #define DEFAULT_RPM_STEP_B		0x01		//(4bits) 0x00 - 0x0F
+ #define DEFAULT_START_STEP_SIZE_B	0x01	//(4bits) 0x00 - 0x0F	
+
+/*
+ * Client data (each client gets its own)  **--Not currently used Provided for future use
+ */
+struct max6639_data {		//**** NOT CURRENTLY USED! ****//
+
+	/* Register values sampled during readfan function */
+	float temp;		/* Temperature, in degrees F */
+	bool temp_fault;	/* Detected temperature diode failure */
+	uint8_t fan;		/* Register value: TACH count for fans >=30 */
+	uint16_t rpm;		/* Calculated RPM value derived from fan tach count */
+	uint8_t status;		/* Detected channel alarms and fan failures */
+
+	/* Register values only written to device with update function */
+	uint8_t fan_mode;	/* Fan Speed Control Mode: 0=Auto RPM, 1=Manual RPM, 2=Set PWM */
+	uint8_t pwm;		/* Register value: Duty cycle 0..120 */
+	uint8_t target_tach;/* Target Tach for Manual RPM Mode */
+	uint8_t temp_therm;	/* THERM Temperature, 0..255 C (->_max) */
+	uint8_t temp_alert;	/* ALERT Temperature, 0..255 C (->_crit) */
+	uint8_t temp_ot;		/* OT Temperature, 0..255 C (->_emergency) */
+
+	/* Register values initialized only once with init function */
+	uint8_t ppr;			/* Pulses per rotation 0..3 for 1..4 ppr */
+	uint8_t rpm_range;		/* Index in above rpm_ranges table */
+	bool pwm_polarity;		/* Polarity low (0) or high (1, default) */
+	bool spin_up_disable;	/* False=Normal start-up fan spin-up, True=disable fan spin-up on start */
+	bool therm_full_speed;	/* True=force fan to full speed when /THERM is asserted */
+};
 
 
 class MAX6639 {
 public:
+//  struct max6639_data fan_info[2];  // Info structure not currently implemented. Provided for future use...
+
   void begin(void);
   void begin(uint8_t _address);
 
@@ -143,7 +186,8 @@ public:
   void setFanTargetTach(uint8_t ch, uint8_t Count);
   uint8_t getFanPPR(uint8_t ch);
   uint8_t getFanPPRval(uint8_t ch);
-  void setFanPPR(uint8_t ch, uint8_t ppr);
+  void setFanPPR(uint8_t ch, uint8_t ppr_set);
+  void setFanPPRval(uint8_t ch, uint8_t ppr_set);
   uint8_t getFanMinTachCount(uint8_t ch);
   void setFanMinTachCount(uint8_t ch, uint8_t mintach);
   uint8_t getFanDuty(uint8_t ch);
@@ -159,6 +203,7 @@ public:
   void setFanTherm(uint8_t ch, bool state);
   void setFanPulseStretch(uint8_t ch, bool state);
   void setFanPWMFreq(uint8_t ch, uint8_t freq);
+  float getFanPWMFreq(uint8_t ch);
   void setRun(bool state);
   bool isRunning(void);
   void setPOR(bool state);
@@ -168,8 +213,6 @@ public:
   void setFanControl(uint8_t ch, uint8_t TChan);
   uint8_t getFanRPMRange(uint8_t ch);
   void setFanRPMRange(uint8_t ch, uint8_t range);
-  void maxRegDump(uint8_t start, uint8_t end);
-  void initDefaults(void);
   void setFanMinimumSpeed(uint8_t ch, bool state, uint8_t count);
   void setFanRateOfChange(uint8_t ch, uint8_t val);
   uint8_t getFanRateOfChange(uint8_t ch);
@@ -181,7 +224,15 @@ public:
   uint8_t getFanRPMStepB(uint8_t ch);
   void setFanStartStep(uint8_t ch, uint8_t val);
   uint8_t getFanStartStep(uint8_t ch);
+  void initDefaults(void);
+  uint16_t getFanRPM(uint8_t ch);
+  void setFanAutoRPM(uint8_t ch, uint8_t Chan);
+  void setFanPWMMode(uint8_t ch, uint8_t Duty);
+  void setFanManualRPM(uint8_t ch, uint8_t Tach);
+  int getFanSensorCorrection(uint8_t ch);
+  void setFanSensorCorrection(uint8_t ch, int Val);
   
+  int SensorCorrection[2];			//Signed integer value for adjusting sensor return values to a known baseline
 protected: 
 
 private:

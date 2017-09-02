@@ -34,6 +34,8 @@ void MAX6639::begin(void)
 {
   _address = 0x2C;
   Wire.begin();
+  SensorCorrection[0] = 0;
+  SensorCorrection[1] = 0;
 }
 
 void MAX6639::begin(uint8_t addr)
@@ -44,6 +46,8 @@ void MAX6639::begin(uint8_t addr)
     _address = addr;
   }
   Wire.begin();
+  SensorCorrection[0] = 0;
+  SensorCorrection[1] = 0;
 }
 
 
@@ -81,7 +85,7 @@ uint8_t MAX6639::readTempC(uint8_t ch) {
   uint8_t Temperature;
   
   readByte(&Temperature, MAX6639_REG_TEMP(ch));
-  return(Temperature);
+  return((Temperature)+SensorCorrection[ch]);
 }
 
 uint8_t MAX6639::readTempF(uint8_t ch) {
@@ -157,11 +161,13 @@ uint8_t MAX6639::getALERTLimit(uint8_t ch) {
   uint8_t Limit;
   
   readByte(&Limit, MAX6639_REG_ALERT_LIMIT(ch));
+  Limit -= SensorCorrection[ch];
   return(Limit);
 }
 
 void MAX6639::setALERTLimit(uint8_t ch, uint8_t Limit) {
 
+  Limit += SensorCorrection[ch];
   writeByte(Limit, MAX6639_REG_ALERT_LIMIT(ch));
   return;
 }
@@ -170,11 +176,13 @@ uint8_t MAX6639::getOTLimit(uint8_t ch) {
   uint8_t Limit;
   
   readByte(&Limit, MAX6639_REG_OT_LIMIT(ch));
+  Limit -= SensorCorrection[ch];
   return(Limit);
 }
 
 void MAX6639::setOTLimit(uint8_t ch, uint8_t Limit) {
 
+  Limit += SensorCorrection[ch];
   writeByte(Limit, MAX6639_REG_OT_LIMIT(ch));
   return;
 }
@@ -183,14 +191,17 @@ uint8_t MAX6639::getTHERMLimit(uint8_t ch) {
   uint8_t Limit;
   
   readByte(&Limit, MAX6639_REG_THERM_LIMIT(ch));
+  Limit -= SensorCorrection[ch];
   return(Limit);
 }
 
 void MAX6639::setTHERMLimit(uint8_t ch, uint8_t Limit) {
 
+  Limit += SensorCorrection[ch];
   writeByte(Limit, MAX6639_REG_THERM_LIMIT(ch));
   return;
 }
+
 
 uint8_t MAX6639::getFanConfig(uint8_t reg) {
   uint8_t Config;
@@ -243,14 +254,25 @@ uint8_t MAX6639::getFanPPRval(uint8_t ch) {
   
   readByte(&ppr, MAX6639_REG_FAN_PPR(ch));
   ppr &= 0xC0;
-  return(ppr >> 6);
+  return(ppr_values[(ppr >> 6)]);
 }
 
-void MAX6639::setFanPPR(uint8_t ch, uint8_t ppr) {
+void MAX6639::setFanPPR(uint8_t ch, uint8_t ppr_set) {
+  uint8_t ppr;
   
   readByte(&ppr, MAX6639_REG_FAN_PPR(ch));
   ppr &= 0x3F;
-  ppr |= (ppr & 0xC0);
+  ppr |= (ppr_set & 0xC0);
+  writeByte(ppr, MAX6639_REG_FAN_PPR(ch));
+  return;
+}
+
+void MAX6639::setFanPPRval(uint8_t ch, uint8_t ppr_set) {
+  uint8_t ppr;
+  
+  readByte(&ppr, MAX6639_REG_FAN_PPR(ch));
+  ppr &= 0x3F;
+  ppr |= ((ppr_set<<6) & 0xC0);
   writeByte(ppr, MAX6639_REG_FAN_PPR(ch));
   return;
 }
@@ -308,11 +330,13 @@ uint8_t MAX6639::getFanStartTempC(uint8_t ch) {
   uint8_t Temperature;
   
   readByte(&Temperature, MAX6639_REG_FAN_START_TEMP(ch));
+  Temperature -= SensorCorrection[ch];
   return(Temperature);
 }
 
 void MAX6639::setFanStartTempC(uint8_t ch, uint8_t Temperature) {
   
+  Temperature += SensorCorrection[ch];
   writeByte(Temperature, MAX6639_REG_FAN_START_TEMP(ch));
   return;
 }
@@ -374,6 +398,51 @@ void MAX6639::setFanPulseStretch(uint8_t ch, bool state) {
   setFanConfig(MAX6639_REG_FAN_CONFIG3(ch), curr_config);
 }
 
+
+float MAX6639::getFanPWMFreq(uint8_t ch) {
+  uint16_t freq;
+  bool range;
+  uint8_t curr_config;
+  
+  curr_config = getConfig();
+  curr_config &= 0xF7;
+  range = curr_config;
+  
+  curr_config = getFanConfig(MAX6639_REG_FAN_CONFIG3(ch));
+  curr_config &= 0xFC;
+  freq &= 0x03;
+  switch(freq) {
+    case 0:
+	  if(range)
+	    return(5000.0);
+	  else
+	    return(20.0);
+	  break;
+	case 1:
+	  if(range)
+	    return(8330.0);
+	  else
+	    return(33.33);
+	  break;
+	case 2:
+	  if(range)
+	    return(12500.0);
+	  else
+	    return(50.0);
+	  break;
+	case 3:
+	  if(range)
+	    return(25000.0);
+	  else
+	    return(100.0);
+	  break;
+	default:
+	  break;
+  }
+  return(0.0);
+}
+
+
 void MAX6639::setFanPWMFreq(uint8_t ch, uint8_t freq) {
   uint8_t curr_config;
   
@@ -388,6 +457,7 @@ void MAX6639::setFanPWMFreq(uint8_t ch, uint8_t freq) {
   curr_config |= freq;
   setFanConfig(MAX6639_REG_FAN_CONFIG3(ch), curr_config);
 }
+
 
 void MAX6639::setRun(bool state) {
   uint8_t curr_config;
@@ -488,38 +558,12 @@ void MAX6639::setFanRPMRange(uint8_t ch, uint8_t range) {
 }
 
 
-void MAX6639::maxRegDump(uint8_t start, uint8_t end) {
-  uint8_t val;
-  
-  Serial.print("MAX6639 Register Dump 0x");
-  Serial.println(_address, HEX);
-  Serial.println("--- BEGIN DUMP ---");
-  for(uint8_t n=start;n <= end;n++) {
-    readByte(&val, n);
-	if(!(n%8)) {
-      Serial.print("\n");
-    }
-	if(n<16)
-	  Serial.print("0");
-    Serial.print(n, HEX);
-    Serial.print(":");
-	if(val < 0x10)
-	  Serial.print("0");
-    Serial.print(val, HEX);
-    Serial.print(" ");
-  }
-  Serial.print("\n");
-  Serial.println("--- END DUMP ---");  
-}
-
-
-void MAX6639::initDefaults(void) {
-  setPOR(true);
-  delay(1000);
+void MAX6639::initDefaults(void) {  	//Setup default values as listed in max6639.h  Specific channels and
+  setPOR(true);							//Values may be moidfied at run-time.
+  delay(100);
+  setConfig(DEFAULT_BUS_TIMEOUT|DEFAULT_CH2_SOURCE|((DEFAULT_PWM_FREQ & 0x04)<<1));
   setFanPPR(0, DEFAULT_FAN_PPR);
   setFanPPR(1, DEFAULT_FAN_PPR);
-  setFanConfig(MAX6639_REG_FAN_CONFIG1(0), MAX6639_FAN_CONFIG1_PWM|DEFAULT_RPM_RANGE|DEFAULT_FAN_ROC);
-  setFanConfig(MAX6639_REG_FAN_CONFIG1(1), MAX6639_FAN_CONFIG1_PWM|DEFAULT_RPM_RANGE|DEFAULT_FAN_ROC);
   setPWMPolarity(0, DEFAULT_PWM_POLARITY);
   setPWMPolarity(1, DEFAULT_PWM_POLARITY);
   setFanConfig(MAX6639_REG_FAN_CONFIG3(0), (DEFAULT_PWM_FREQ&0x03));
@@ -532,15 +576,14 @@ void MAX6639::initDefaults(void) {
   setALERTLimit(1, DEFAULT_LIMIT_ALERT);
   setOTLimit(0, DEFAULT_LIMIT_OVERTEMP);
   setOTLimit(1, DEFAULT_LIMIT_OVERTEMP);
-  setFanDuty(0, DEFAULT_FAN_TARGET_DUTY);
-  setFanDuty(1, DEFAULT_FAN_TARGET_DUTY); 
-  setFanControl(0, TCHAN_0); 
-  setFanControl(1, TCHAN_1);
-  setPWMMode(0, false);
-  setPWMMode(1, false);
-  setConfig(DEFAULT_BUS_TIMEOUT|DEFAULT_CH2_SOURCE|((DEFAULT_PWM_FREQ & 0x04)<<1));
+  setFanStartTempC(0, DEFAULT_MIN_START_TEMP); 
+  setFanStartTempC(1, DEFAULT_MIN_START_TEMP);
   setFanMinimumSpeed(0, DEFAULT_MIN_TACH_ENABLE, DEFAULT_MIN_TACH);
-  setFanMinimumSpeed(1, true, DEFAULT_MIN_TACH);
+  setFanMinimumSpeed(1, DEFAULT_MIN_TACH_ENABLE, DEFAULT_MIN_TACH);
+  setFanConfig(MAX6639_REG_FAN_CONFIG1(0), DEFAULT_RPM_RANGE|DEFAULT_FAN_ROC);
+  setFanAutoRPM(0, TCHAN_0);
+  setFanConfig(MAX6639_REG_FAN_CONFIG1(1), DEFAULT_RPM_RANGE|DEFAULT_FAN_ROC);
+  setFanAutoRPM(1, TCHAN_1);
 }
 
 void MAX6639::setFanMinimumSpeed(uint8_t ch, bool state, uint8_t count) {
@@ -654,4 +697,62 @@ uint8_t MAX6639::getFanStartStep(uint8_t ch) {
   curr_config &= 0x0f;
   
   return(curr_config);
+}
+
+uint16_t MAX6639::getFanRPM(uint8_t ch) {
+  uint16_t RPM = 0, Freq = 0;
+  uint8_t TachCount, ppr;						//Datasheet problematic in determining RPM
+  
+  TachCount = getFanTachCount(ch);				//The tach count value which each rev/ppr is subtracted from 255
+  ppr = getFanPPRval(ch);						//Number of Pulses per revolution
+  Freq = rpm_ranges[getFanRPMRange(ch)]; 		//Clk Frequency is equal to the selected RPM range...
+  
+  if(TachCount == 255) {						// Just to make a "clean" zero value (no rounding errors) when it is near zero...
+    RPM = 0;
+  } else {
+    TachCount = (255 - TachCount) / ppr;
+    RPM = (uint16_t)((long)Freq *  (long)TachCount / (long)60);
+  }
+
+  return(RPM);
+}
+
+void MAX6639::setFanAutoRPM(uint8_t ch, uint8_t Chan) {  // Chan Values of TCHAN_0 ot TCHAN_1
+  uint8_t curr_config;
+  
+  curr_config = getFanConfig(MAX6639_REG_FAN_CONFIG1(ch));
+  curr_config &= 0x73;
+  
+  curr_config |= Chan;
+  setFanConfig(MAX6639_REG_FAN_CONFIG1(ch), curr_config);
+}
+
+void MAX6639::setFanPWMMode(uint8_t ch, uint8_t Duty) {		//Duty Cycle in 0% to 100%
+  uint8_t curr_config;
+  
+  curr_config = getFanConfig(MAX6639_REG_FAN_CONFIG1(ch));
+  curr_config &= 0x73;
+  
+  curr_config |= 0x80;
+  setFanConfig(MAX6639_REG_FAN_CONFIG1(ch), curr_config);
+  setFanDutyPercent(ch, Duty);
+}
+
+void MAX6639::setFanManualRPM(uint8_t ch, uint8_t Tach) {	// Target Tach value from 0 to 255
+  uint8_t curr_config;
+  
+  curr_config = getFanConfig(MAX6639_REG_FAN_CONFIG1(ch));
+  curr_config &= 0x73;
+  
+  setFanConfig(MAX6639_REG_FAN_CONFIG1(ch), curr_config);
+  setFanTargetTach(ch, Tach);
+}
+
+
+int MAX6639::getFanSensorCorrection(uint8_t ch) {
+  return(SensorCorrection[ch]);
+}
+
+void MAX6639::setFanSensorCorrection(uint8_t ch, int Val) {
+  SensorCorrection[ch] = Val;
 }
